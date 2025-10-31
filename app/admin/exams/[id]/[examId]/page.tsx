@@ -21,6 +21,15 @@ interface Question {
   explanation?: string
   marks: number
   test_cases?: any
+  title?: string
+  input_format?: string
+  output_format?: string
+  examples?: Array<{
+    input: string
+    output: string
+    explanation?: string
+  }>
+  constraints?: string
 }
 
 export default function QuestionsPage() {
