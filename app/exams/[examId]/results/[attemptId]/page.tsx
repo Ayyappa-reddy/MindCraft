@@ -237,9 +237,12 @@ export default function ResultsPage() {
                                 : 'bg-gray-50 border'
                             }`}
                           >
-                            {String.fromCharCode(65 + optIdx)}. {option}
-                            {option === question.correct_answer && ' ✓ Correct Answer'}
-                            {option === studentAnswer?.answer && option !== question.correct_answer && ' ✗ Your Answer'}
+                            <div className="whitespace-pre-wrap">
+                              <span className="font-semibold">{String.fromCharCode(65 + optIdx)}. </span>
+                              {option}
+                              {option === question.correct_answer && ' ✓ Correct Answer'}
+                              {option === studentAnswer?.answer && option !== question.correct_answer && ' ✗ Your Answer'}
+                            </div>
                           </div>
                         ))}
                       </div>

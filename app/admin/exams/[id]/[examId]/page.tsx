@@ -38,7 +38,12 @@ export default function QuestionsPage() {
 
   const [formData, setFormData] = useState({
     type: 'mcq' as 'mcq' | 'coding',
+    title: '',
     question_text: '',
+    input_format: '',
+    output_format: '',
+    constraints: '',
+    examples: '',
     options: '',
     correct_answer: '',
     explanation: '',
@@ -93,6 +98,21 @@ export default function QuestionsPage() {
       const options = formData.options.split('\n[OPTION]\n').map(o => o.trim()).filter(o => o)
       questionData.options = options
     } else {
+      // Add structured fields for coding questions
+      if (formData.title) questionData.title = formData.title
+      if (formData.input_format) questionData.input_format = formData.input_format
+      if (formData.output_format) questionData.output_format = formData.output_format
+      if (formData.constraints) questionData.constraints = formData.constraints
+      
+      // Parse examples if provided
+      if (formData.examples) {
+        try {
+          questionData.examples = JSON.parse(formData.examples)
+        } catch (e) {
+          console.error('Invalid examples JSON:', e)
+        }
+      }
+      
       // Parse test cases with hidden flag support
       const testCases = formData.test_cases.split('\n---\n').map(tc => {
         const lines = tc.trim().split('\n')
@@ -149,6 +169,24 @@ export default function QuestionsPage() {
       const options = formData.options.split('\n[OPTION]\n').map(o => o.trim()).filter(o => o)
       questionData.options = options
     } else {
+      // Add structured fields for coding questions
+      questionData.title = formData.title || null
+      questionData.input_format = formData.input_format || null
+      questionData.output_format = formData.output_format || null
+      questionData.constraints = formData.constraints || null
+      
+      // Parse examples if provided
+      if (formData.examples) {
+        try {
+          questionData.examples = JSON.parse(formData.examples)
+        } catch (e) {
+          console.error('Invalid examples JSON:', e)
+          questionData.examples = null
+        }
+      } else {
+        questionData.examples = null
+      }
+      
       // Parse test cases with hidden flag support
       const testCases = formData.test_cases.split('\n---\n').map(tc => {
         const lines = tc.trim().split('\n')
@@ -209,7 +247,12 @@ export default function QuestionsPage() {
   const resetFormData = () => {
     setFormData({
       type: 'mcq',
+      title: '',
       question_text: '',
+      input_format: '',
+      output_format: '',
+      constraints: '',
+      examples: '',
       options: '',
       correct_answer: '',
       explanation: '',
@@ -300,24 +343,66 @@ export default function QuestionsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="mcq_answer">Correct Answer</Label>
-                    <Input
+                    <Textarea
                       id="mcq_answer"
                       value={formData.correct_answer}
                       onChange={(e) => setFormData({ ...formData, correct_answer: e.target.value })}
                       placeholder="Enter the exact correct option text"
+                      rows={3}
                     />
                   </div>
                 </>
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="expected_output">Expected Output</Label>
+                    <Label htmlFor="title">Title (Optional)</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="e.g., Sum of Two Numbers"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="input_format">Input Format (Optional)</Label>
                     <Textarea
-                      id="expected_output"
-                      value={formData.correct_answer}
-                      onChange={(e) => setFormData({ ...formData, correct_answer: e.target.value })}
-                      rows={3}
-                      placeholder="Expected output or answer"
+                      id="input_format"
+                      value={formData.input_format}
+                      onChange={(e) => setFormData({ ...formData, input_format: e.target.value })}
+                      rows={2}
+                      placeholder="First line contains an integer n..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="output_format">Output Format (Optional)</Label>
+                    <Textarea
+                      id="output_format"
+                      value={formData.output_format}
+                      onChange={(e) => setFormData({ ...formData, output_format: e.target.value })}
+                      rows={2}
+                      placeholder="Print a single integer..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="examples">Examples (Optional, JSON Format)</Label>
+                    <Textarea
+                      id="examples"
+                      value={formData.examples}
+                      onChange={(e) => setFormData({ ...formData, examples: e.target.value })}
+                      rows={4}
+                      placeholder='[{"input":"5","output":"Even","explanation":"..."},{"input":"7","output":"Odd"}]'
+                      className="font-mono text-sm"
+                    />
+                    <p className="text-xs text-gray-500">JSON array with input, output, and optional explanation</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="constraints">Constraints (Optional)</Label>
+                    <Textarea
+                      id="constraints"
+                      value={formData.constraints}
+                      onChange={(e) => setFormData({ ...formData, constraints: e.target.value })}
+                      rows={2}
+                      placeholder="1 ≤ n ≤ 10^9"
                     />
                   </div>
                   <div className="space-y-2">
@@ -413,7 +498,12 @@ export default function QuestionsPage() {
                         if (q.type === 'mcq') {
                           setFormData({
                             type: 'mcq',
+                            title: '',
                             question_text: q.question_text,
+                            input_format: '',
+                            output_format: '',
+                            constraints: '',
+                            examples: '',
                             options: q.options?.join('\n[OPTION]\n') || '',
                             correct_answer: q.correct_answer,
                             explanation: q.explanation || '',
@@ -423,7 +513,12 @@ export default function QuestionsPage() {
                         } else {
                           setFormData({
                             type: 'coding',
+                            title: q.title || '',
                             question_text: q.question_text,
+                            input_format: q.input_format || '',
+                            output_format: q.output_format || '',
+                            constraints: q.constraints || '',
+                            examples: q.examples ? JSON.stringify(q.examples) : '',
                             options: '',
                             correct_answer: q.correct_answer,
                             explanation: q.explanation || '',
@@ -458,16 +553,88 @@ export default function QuestionsPage() {
                     <ul className="space-y-1">
                       {q.options.map((opt, i) => (
                         <li key={i} className={opt === q.correct_answer ? 'text-green-600 font-semibold' : ''}>
-                          {String.fromCharCode(65 + i)}. {opt} {opt === q.correct_answer && '(Correct)'}
+                          <span className="font-semibold">{String.fromCharCode(65 + i)}. </span>
+                          <span className="whitespace-pre-wrap">{opt}</span> {opt === q.correct_answer && '(Correct)'}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
                 {q.type === 'coding' && (
-                  <div>
-                    <p className="font-semibold mb-2">Expected Output:</p>
-                    <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded">{q.correct_answer}</pre>
+                  <div className="space-y-4">
+                    {q.title && (
+                      <div>
+                        <p className="font-semibold mb-2">Title:</p>
+                        <p className="text-sm">{q.title}</p>
+                      </div>
+                    )}
+                    {q.input_format && (
+                      <div>
+                        <p className="font-semibold mb-2">Input Format:</p>
+                        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm whitespace-pre-wrap">{q.input_format}</pre>
+                      </div>
+                    )}
+                    {q.output_format && (
+                      <div>
+                        <p className="font-semibold mb-2">Output Format:</p>
+                        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm whitespace-pre-wrap">{q.output_format}</pre>
+                      </div>
+                    )}
+                    {q.examples && Array.isArray(q.examples) && q.examples.length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-2">Examples:</p>
+                        {q.examples.map((ex: any, exIdx: number) => (
+                          <div key={exIdx} className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                            <p className="font-medium mb-2">Example {exIdx + 1}:</p>
+                            <div className="space-y-2">
+                              <div>
+                                <span className="text-sm font-medium">Input:</span>
+                                <pre className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-sm whitespace-pre-wrap">{ex.input}</pre>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium">Output:</span>
+                                <pre className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-sm whitespace-pre-wrap">{ex.output}</pre>
+                              </div>
+                              {ex.explanation && (
+                                <div>
+                                  <span className="text-sm font-medium">Explanation:</span>
+                                  <p className="text-sm mt-1">{ex.explanation}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {q.constraints && (
+                      <div>
+                        <p className="font-semibold mb-2">Constraints:</p>
+                        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm whitespace-pre-wrap">{q.constraints}</pre>
+                      </div>
+                    )}
+                    {q.test_cases && Array.isArray(q.test_cases) && q.test_cases.length > 0 && (
+                      <div>
+                        <p className="font-semibold mb-2">Test Cases:</p>
+                        {q.test_cases.map((tc: any, tcIdx: number) => (
+                          <div key={tcIdx} className={`mb-2 p-3 rounded ${tc.hidden ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">Test Case {tcIdx + 1}</span>
+                              {tc.hidden && <span className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 px-2 py-1 rounded">HIDDEN</span>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Input:</span>
+                                <pre className="bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1 whitespace-pre-wrap">{tc.input}</pre>
+                              </div>
+                              <div>
+                                <span className="font-medium">Output:</span>
+                                <pre className="bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1 whitespace-pre-wrap">{tc.output}</pre>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 {q.explanation && (

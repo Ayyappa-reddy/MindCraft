@@ -292,7 +292,7 @@ export default function CodingExamLayout({
             {currentQuestion.options?.map((option, optIdx) => (
               <label
                 key={optIdx}
-                className="flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
               >
                 <input
                   type="radio"
@@ -300,9 +300,12 @@ export default function CodingExamLayout({
                   value={option}
                   checked={answers[currentQuestion.id]?.answer === option}
                   onChange={() => onAnswerChange(currentQuestion.id, { type: 'mcq', answer: option })}
-                  className="h-5 w-5"
+                  className="h-5 w-5 mt-1"
                 />
-                <span className="text-lg">{String.fromCharCode(65 + optIdx)}. {option}</span>
+                <div className="text-lg flex-1">
+                  <span className="font-semibold">{String.fromCharCode(65 + optIdx)}. </span>
+                  <span className="whitespace-pre-wrap">{option}</span>
+                </div>
               </label>
             ))}
           </div>
