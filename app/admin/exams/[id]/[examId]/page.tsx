@@ -767,7 +767,9 @@ export default function QuestionsPage() {
                               {q._valid ? (
                                 <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
                               ) : (
-                                <XCircle className="h-5 w-5 text-red-600 mx-auto" title={q._errors?.join(', ')} />
+                                <div title={q._errors?.join(', ')}>
+                                  <XCircle className="h-5 w-5 text-red-600 mx-auto" />
+                                </div>
                               )}
                             </td>
                             <td className="p-2 text-center">
