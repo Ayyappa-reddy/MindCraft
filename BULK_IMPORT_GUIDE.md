@@ -96,6 +96,7 @@ Instead of manually entering questions one by one, you can prepare questions in 
     ],
     "constraints": "1 <= n <= 10^9",
     "test_cases": "5 3\n===\n8\n---\n10 20\n===\n30\n---\n[HIDDEN]\n100 200\n===\n300",
+    "explanation": "This problem tests basic arithmetic operations and input/output in Python.",
     "marks": 5
   }
 ]
@@ -120,6 +121,7 @@ Instead of manually entering questions one by one, you can prepare questions in 
     ],
     "constraints": "1 <= rows, cols <= 100",
     "test_cases": "2 2\n1 2\n3 4\n5 6\n7 8\n===\n6 8\n10 12\n---\n[HIDDEN]\n3 3\n1 1 1\n2 2 2\n3 3 3\n4 4 4\n5 5 5\n6 6 6\n===\n5 5 5\n7 7 7\n9 9 9",
+    "explanation": "This problem demonstrates multi-dimensional array processing and nested loops in Python.",
     "marks": 10
   }
 ]

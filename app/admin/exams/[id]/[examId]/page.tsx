@@ -373,7 +373,36 @@ export default function QuestionsPage() {
         baseData.input_format = q.input_format || null
         baseData.output_format = q.output_format || null
         baseData.constraints = q.constraints || null
-        baseData.test_cases = q.test_cases
+        
+        // Convert test cases string to JSONB array format
+        if (q.test_cases && typeof q.test_cases === 'string') {
+          const testCases = q.test_cases.split('\n---\n').map((tc: string) => {
+            const lines = tc.trim().split('\n')
+            let hidden = false
+            let startIdx = 0
+            
+            // Check if first line is [HIDDEN]
+            if (lines[0].trim() === '[HIDDEN]') {
+              hidden = true
+              startIdx = 1
+            }
+            
+            // Find the === separator
+            const fullText = lines.slice(startIdx).join('\n')
+            const [input, output] = fullText.split('\n===\n')
+            
+            return { 
+              input: input?.trim() || '', 
+              output: output?.trim() || '',
+              hidden 
+            }
+          }).filter((tc: any) => tc.input && tc.output)
+          
+          baseData.test_cases = testCases
+        } else {
+          baseData.test_cases = q.test_cases
+        }
+        
         baseData.correct_answer = '' // Required field, empty for coding
 
         // Handle examples
@@ -478,7 +507,6 @@ export default function QuestionsPage() {
                     setFormData({ ...formData, type: e.target.value as 'mcq' | 'coding' })
                     setQuestionType(e.target.value as 'mcq' | 'coding')
                   }}
-                  disabled={!!selectedQuestion}
                 >
                   <option value="mcq">MCQ (Multiple Choice)</option>
                   <option value="coding">Coding Question</option>
