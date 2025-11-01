@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { User, Key } from 'lucide-react'
+import { User, Key, Mail, Phone, Calendar, Save, Lock, Camera } from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -149,111 +149,214 @@ export default function ProfilePage() {
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Profile Settings
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage your account settings and preferences
+          </p>
+        </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <CardTitle>Profile Information</CardTitle>
-              </div>
-              <CardDescription>Update your profile information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" value={user?.email || ''} disabled />
-                <p className="text-xs text-gray-500">Email cannot be changed</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    value={profileData.displayName}
-                    onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
-                    placeholder="Your display name"
-                  />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Profile Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Profile Information Card */}
+            <Card className="border-2 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">Profile Information</CardTitle>
+                      <CardDescription>Update your personal details</CardDescription>
+                    </div>
+                  </div>
                 </div>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                {/* Email Field - Full Width */}
                 <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth</Label>
-                  <Input
-                    id="dob"
-                    type="date"
-                    value={profileData.dob}
-                    onChange={(e) => setProfileData({ ...profileData, dob: e.target.value })}
-                  />
+                  <Label htmlFor="email" className="flex items-center space-x-2">
+                    <Mail className="h-4 w-4" />
+                    <span>Email Address</span>
+                  </Label>
+                  <div className="relative">
+                    <Input 
+                      id="email" 
+                      value={user?.email || ''} 
+                      disabled 
+                      className="bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 ml-6">Email cannot be changed</p>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={profileData.phone}
-                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                    placeholder="+1 555 123 4567"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="personalEmail">Personal Email (Optional)</Label>
-                  <Input
-                    id="personalEmail"
-                    type="email"
-                    value={profileData.personalEmail}
-                    onChange={(e) => setProfileData({ ...profileData, personalEmail: e.target.value })}
-                    placeholder="your.personal@gmail.com"
-                  />
-                </div>
-              </div>
-              <Button onClick={handleUpdateProfile}>Save Changes</Button>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Key className="h-5 w-5" />
-                <CardTitle>Change Password</CardTitle>
-              </div>
-              <CardDescription>Update your password</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current">Current Password</Label>
-                <Input
-                  id="current"
-                  type="password"
-                  value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  placeholder="Enter current password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new">New Password</Label>
-                <Input
-                  id="new"
-                  type="password"
-                  value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  placeholder="Enter new password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm">Confirm New Password</Label>
-                <Input
-                  id="confirm"
-                  type="password"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  placeholder="Confirm new password"
-                />
-              </div>
-              <Button onClick={handleChangePassword}>Change Password</Button>
-            </CardContent>
-          </Card>
+                {/* Display Name and DOB */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName" className="flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span>Display Name</span>
+                    </Label>
+                    <Input
+                      id="displayName"
+                      value={profileData.displayName}
+                      onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
+                      placeholder="Enter your name"
+                      className="border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dob" className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Date of Birth</span>
+                    </Label>
+                    <Input
+                      id="dob"
+                      type="date"
+                      value={profileData.dob}
+                      onChange={(e) => setProfileData({ ...profileData, dob: e.target.value })}
+                      className="border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone and Personal Email */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="flex items-center space-x-2">
+                      <Phone className="h-4 w-4" />
+                      <span>Phone Number</span>
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                      placeholder="+1 555 123 4567"
+                      className="border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="personalEmail" className="flex items-center space-x-2">
+                      <Mail className="h-4 w-4" />
+                      <span>Personal Email</span>
+                      <span className="text-xs text-gray-500 font-normal">(Optional)</span>
+                    </Label>
+                    <Input
+                      id="personalEmail"
+                      type="email"
+                      value={profileData.personalEmail}
+                      onChange={(e) => setProfileData({ ...profileData, personalEmail: e.target.value })}
+                      placeholder="your.personal@gmail.com"
+                      className="border-gray-300 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button 
+                    onClick={handleUpdateProfile}
+                    className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Profile Changes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Change Password Card */}
+            <Card className="border-2 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-b">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                    <Lock className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Change Password</CardTitle>
+                    <CardDescription>Update your account password</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="current" className="flex items-center space-x-2">
+                    <Lock className="h-4 w-4" />
+                    <span>Current Password</span>
+                  </Label>
+                  <Input
+                    id="current"
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    placeholder="Enter current password"
+                    className="border-gray-300 dark:border-gray-700 focus:border-red-500 focus:ring-red-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new" className="flex items-center space-x-2">
+                    <Key className="h-4 w-4" />
+                    <span>New Password</span>
+                  </Label>
+                  <Input
+                    id="new"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    placeholder="Enter new password"
+                    className="border-gray-300 dark:border-gray-700 focus:border-red-500 focus:ring-red-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm" className="flex items-center space-x-2">
+                    <Key className="h-4 w-4" />
+                    <span>Confirm New Password</span>
+                  </Label>
+                  <Input
+                    id="confirm"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                    className="border-gray-300 dark:border-gray-700 focus:border-red-500 focus:ring-red-500"
+                  />
+                </div>
+                <div className="pt-4 border-t">
+                  <Button 
+                    onClick={handleChangePassword}
+                    className="w-full md:w-auto bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    Change Password
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Quick Stats */}
+          <div className="space-y-6">
+            <Card className="border-2 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+              <CardContent className="p-6 text-center">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                  {user?.display_name?.[0]?.toUpperCase() || user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <h3 className="text-xl font-bold mb-1">{user?.display_name || user?.name || 'User'}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{user?.email}</p>
+                <div className="pt-4 border-t border-gray-300 dark:border-gray-700">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Account Type</p>
+                  <span className="inline-block px-3 py-1 rounded-full bg-blue-600 text-white text-xs font-semibold capitalize">
+                    {user?.role || 'Student'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

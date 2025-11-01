@@ -69,7 +69,7 @@ export default function ExamsListPage() {
   })
 
   // Helper function to convert UTC ISO string to local datetime-local format
-  const utcToLocal = (utcString: string | null): string => {
+  const utcToLocal = (utcString: string | null | undefined): string => {
     if (!utcString) return ''
     const date = new Date(utcString)
     // Get local date components
