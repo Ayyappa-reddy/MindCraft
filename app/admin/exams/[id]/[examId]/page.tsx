@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Edit, Trash2, ArrowLeft, FileText, Code, HelpCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, ArrowLeft, FileText, Code, HelpCircle, Upload, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Question {
   id: string
@@ -44,6 +45,14 @@ export default function QuestionsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null)
   const [questionType, setQuestionType] = useState<'mcq' | 'coding'>('mcq')
+  
+  // Bulk import states
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false)
+  const [bulkImportType, setBulkImportType] = useState<'mcq' | 'coding'>('mcq')
+  const [bulkImportText, setBulkImportText] = useState('')
+  const [parsedQuestions, setParsedQuestions] = useState<any[]>([])
+  const [importErrors, setImportErrors] = useState<string[]>([])
+  const [showPreview, setShowPreview] = useState(false)
 
   const [formData, setFormData] = useState({
     type: 'mcq' as 'mcq' | 'coding',
@@ -270,6 +279,146 @@ export default function QuestionsPage() {
     })
   }
 
+  const parseBulkQuestions = () => {
+    const errors: string[] = []
+    const parsed: any[] = []
+
+    try {
+      const jsonData = JSON.parse(bulkImportText)
+      
+      if (!Array.isArray(jsonData)) {
+        setImportErrors(['JSON must be an array of questions'])
+        return
+      }
+
+      jsonData.forEach((item, index) => {
+        const questionErrors: string[] = []
+        const questionNum = index + 1
+
+        // Common validation
+        if (!item.type || !['mcq', 'coding'].includes(item.type)) {
+          questionErrors.push(`Question ${questionNum}: Invalid or missing 'type' (must be 'mcq' or 'coding')`)
+        }
+        if (!item.question_text || typeof item.question_text !== 'string') {
+          questionErrors.push(`Question ${questionNum}: Missing or invalid 'question_text'`)
+        }
+        if (!item.marks || typeof item.marks !== 'number' || item.marks < 1) {
+          questionErrors.push(`Question ${questionNum}: Invalid 'marks' (must be a number >= 1)`)
+        }
+
+        // MCQ specific validation
+        if (item.type === 'mcq') {
+          if (!Array.isArray(item.options) || item.options.length < 2) {
+            questionErrors.push(`Question ${questionNum}: 'options' must be an array with at least 2 items`)
+          }
+          if (!item.correct_answer || typeof item.correct_answer !== 'string') {
+            questionErrors.push(`Question ${questionNum}: Missing or invalid 'correct_answer'`)
+          }
+        }
+
+        // Coding specific validation
+        if (item.type === 'coding') {
+          if (!item.title || typeof item.title !== 'string') {
+            questionErrors.push(`Question ${questionNum}: Missing or invalid 'title'`)
+          }
+          if (!item.test_cases || typeof item.test_cases !== 'string') {
+            questionErrors.push(`Question ${questionNum}: Missing or invalid 'test_cases'`)
+          }
+        }
+
+        if (questionErrors.length > 0) {
+          errors.push(...questionErrors)
+          parsed.push({ ...item, _errors: questionErrors, _valid: false })
+        } else {
+          parsed.push({ ...item, _valid: true })
+        }
+      })
+
+      setParsedQuestions(parsed)
+      setImportErrors(errors)
+      setShowPreview(true)
+
+    } catch (e: any) {
+      setImportErrors([`JSON Parse Error: ${e.message}`])
+      setParsedQuestions([])
+      setShowPreview(false)
+    }
+  }
+
+  const handleBulkImport = async () => {
+    const validQuestions = parsedQuestions.filter(q => q._valid)
+    
+    if (validQuestions.length === 0) {
+      alert('No valid questions to import')
+      return
+    }
+
+    const supabase = createClient()
+    
+    // Prepare questions for database
+    const questionsToInsert = validQuestions.map(q => {
+      const baseData: any = {
+        exam_id: examId,
+        type: q.type,
+        question_text: q.question_text,
+        marks: q.marks,
+        explanation: q.explanation || null,
+      }
+
+      if (q.type === 'mcq') {
+        baseData.options = q.options
+        baseData.correct_answer = q.correct_answer
+      } else if (q.type === 'coding') {
+        baseData.title = q.title
+        baseData.input_format = q.input_format || null
+        baseData.output_format = q.output_format || null
+        baseData.constraints = q.constraints || null
+        baseData.test_cases = q.test_cases
+        baseData.correct_answer = '' // Required field, empty for coding
+
+        // Handle examples
+        if (q.examples) {
+          baseData.examples = Array.isArray(q.examples) ? q.examples : null
+        }
+      }
+
+      return baseData
+    })
+
+    const { error } = await supabase
+      .from('questions')
+      .insert(questionsToInsert)
+
+    if (error) {
+      alert('Error importing questions: ' + error.message)
+      return
+    }
+
+    alert(`Successfully imported ${validQuestions.length} question(s)!`)
+    
+    // Reset and close
+    setBulkImportText('')
+    setParsedQuestions([])
+    setImportErrors([])
+    setShowPreview(false)
+    setIsBulkImportOpen(false)
+    
+    loadQuestions()
+  }
+
+  const removeQuestionFromPreview = (index: number) => {
+    setParsedQuestions(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const openBulkImport = (type: 'mcq' | 'coding') => {
+    setBulkImportType(type)
+    setBulkImportText('')
+    setParsedQuestions([])
+    setImportErrors([])
+    setShowPreview(false)
+    setIsBulkImportOpen(true)
+  }
+
   if (loading) {
     return <div>Loading...</div>
   }
@@ -293,18 +442,27 @@ export default function QuestionsPage() {
         <p className="text-gray-600 dark:text-gray-400">
           {questions.length} question{questions.length !== 1 ? 's' : ''}
         </p>
-        <Dialog open={isAddDialogOpen || !!selectedQuestion} onOpenChange={(open) => {
-          if (!open) {
-            setIsAddDialogOpen(false)
-            setSelectedQuestion(null)
-            setQuestionType('mcq')
-            resetFormData()
-          }
-        }}>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Question
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => openBulkImport('mcq')}>
+            <Upload className="mr-2 h-4 w-4" />
+            Bulk Import MCQ
           </Button>
+          <Button variant="outline" onClick={() => openBulkImport('coding')}>
+            <Upload className="mr-2 h-4 w-4" />
+            Bulk Import Coding
+          </Button>
+          <Dialog open={isAddDialogOpen || !!selectedQuestion} onOpenChange={(open) => {
+            if (!open) {
+              setIsAddDialogOpen(false)
+              setSelectedQuestion(null)
+              setQuestionType('mcq')
+              resetFormData()
+            }
+          }}>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Question
+            </Button>
           <DialogContent className="bg-white max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedQuestion ? 'Edit Question' : 'Add New Question'}</DialogTitle>
@@ -465,7 +623,164 @@ export default function QuestionsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+        <DialogContent className="bg-white max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Import {bulkImportType === 'mcq' ? 'MCQ' : 'Coding'} Questions</DialogTitle>
+            <DialogDescription>
+              Paste JSON array of questions below. Click "Parse & Preview" to validate before importing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* JSON Input Textarea */}
+            <div className="space-y-2">
+              <Label>JSON Input</Label>
+              <Textarea
+                value={bulkImportText}
+                onChange={(e) => setBulkImportText(e.target.value)}
+                rows={12}
+                className="font-mono text-sm"
+                placeholder={bulkImportType === 'mcq' 
+                  ? '[\n  {\n    "type": "mcq",\n    "question_text": "What is 2+2?",\n    "options": ["2", "3", "4", "5"],\n    "correct_answer": "4",\n    "explanation": "Basic math",\n    "marks": 1\n  }\n]'
+                  : '[\n  {\n    "type": "coding",\n    "title": "Sum of Two Numbers",\n    "question_text": "Write a program...",\n    "test_cases": "5 3\\n===\\n8\\n---\\n[HIDDEN]\\n10 20\\n===\\n30",\n    "marks": 5\n  }\n]'
+                }
+              />
+            </div>
+
+            {/* Parse Button */}
+            <Button onClick={parseBulkQuestions}>
+              <AlertCircle className="mr-2 h-4 w-4" />
+              Parse & Preview
+            </Button>
+
+            {/* Error Display */}
+            {importErrors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-semibold mb-2">Validation Errors:</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {importErrors.map((err, idx) => (
+                      <li key={idx} className="text-sm">{err}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Preview Table */}
+            {showPreview && parsedQuestions.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Preview ({parsedQuestions.length} questions)</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                          <th className="p-2 text-left w-8">#</th>
+                          <th className="p-2 text-left">Question</th>
+                          {bulkImportType === 'mcq' ? (
+                            <>
+                              <th className="p-2 text-left">Options</th>
+                              <th className="p-2 text-left">Answer</th>
+                            </>
+                          ) : (
+                            <>
+                              <th className="p-2 text-left">Title</th>
+                              <th className="p-2 text-left">Test Cases</th>
+                            </>
+                          )}
+                          <th className="p-2 text-center w-16">Marks</th>
+                          <th className="p-2 text-center w-20">Status</th>
+                          <th className="p-2 text-center w-16">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsedQuestions.map((q, idx) => (
+                          <tr key={idx} className={`border-t ${!q._valid ? 'bg-red-50' : ''}`}>
+                            <td className="p-2">{idx + 1}</td>
+                            <td className="p-2">
+                              <div className="max-w-xs truncate whitespace-pre-wrap">
+                                {q.question_text?.substring(0, 60)}...
+                              </div>
+                            </td>
+                            {bulkImportType === 'mcq' ? (
+                              <>
+                                <td className="p-2">{q.options?.length || 0} options</td>
+                                <td className="p-2">
+                                  <div className="max-w-xs truncate">
+                                    {q.correct_answer?.substring(0, 30)}
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="p-2">
+                                  <div className="max-w-xs truncate">
+                                    {q.title?.substring(0, 40)}
+                                  </div>
+                                </td>
+                                <td className="p-2">
+                                  {q.test_cases ? (
+                                    <span className="text-xs">
+                                      {q.test_cases.split('---').length} cases
+                                    </span>
+                                  ) : '0'}
+                                </td>
+                              </>
+                            )}
+                            <td className="p-2 text-center">{q.marks}</td>
+                            <td className="p-2 text-center">
+                              {q._valid ? (
+                                <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
+                              ) : (
+                                <XCircle className="h-5 w-5 text-red-600 mx-auto" title={q._errors?.join(', ')} />
+                              )}
+                            </td>
+                            <td className="p-2 text-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeQuestionFromPreview(idx)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span>
+                    Valid: {parsedQuestions.filter(q => q._valid).length} / {parsedQuestions.length}
+                  </span>
+                  <span className="text-xs">
+                    Invalid questions will not be imported. Remove or fix them.
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkImportOpen(false)}>
+              Cancel
+            </Button>
+            {showPreview && parsedQuestions.filter(q => q._valid).length > 0 && (
+              <Button onClick={handleBulkImport}>
+                Import {parsedQuestions.filter(q => q._valid).length} Question(s)
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {questions.length === 0 ? (
         <Card>
