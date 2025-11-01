@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { FileText, Clock, CheckCircle, XCircle, ArrowRight, Calendar } from 'lucide-react'
+import { FileText, Clock, CheckCircle, XCircle, ArrowRight, Calendar, Search, X, Filter, SortAsc } from 'lucide-react'
 import { format } from 'date-fns'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface Subscription {
   id: string
@@ -33,6 +35,11 @@ export default function ExamsPage() {
   const [exams, setExams] = useState<Exam[]>([])
   const [loading, setLoading] = useState(true)
   const [subscribing, setSubscribing] = useState<string[]>([])
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<string>('recent')
 
   useEffect(() => {
     loadData()
@@ -41,6 +48,10 @@ export default function ExamsPage() {
   useEffect(() => {
     if (selectedSubscription) {
       loadExams()
+      // Reset filters when changing subscription
+      setSearchQuery('')
+      setStatusFilter('all')
+      setSortBy('recent')
     }
   }, [selectedSubscription])
 
@@ -104,28 +115,9 @@ export default function ExamsPage() {
       return
     }
 
-    // Filter based on schedule: only show exams that are available now
-    const now = new Date()
-    const availableExams = data.filter(exam => {
-      // If exam has no schedule, it's always available
-      if (!exam.scheduled_start && !exam.scheduled_end) return true
-      
-      // Check if current time is after scheduled_start
-      if (exam.scheduled_start) {
-        const startTime = new Date(exam.scheduled_start)
-        if (now < startTime) return false // Not yet available
-      }
-      
-      // Check if current time is before scheduled_end
-      if (exam.scheduled_end) {
-        const endTime = new Date(exam.scheduled_end)
-        if (now > endTime) return false // Already ended
-      }
-      
-      return true
-    })
-
-    setExams(availableExams)
+    // Show all exams - visibility is not restricted by schedule
+    // Schedule only controls when students can attempt exams
+    setExams(data)
   }
 
   async function handleSubscribe(subscriptionId: string) {
@@ -174,7 +166,94 @@ export default function ExamsPage() {
     }
   }
 
+  const getExamAvailability = (exam: Exam) => {
+    const now = new Date()
+    
+    // Check if before start time
+    if (exam.scheduled_start) {
+      const startTime = new Date(exam.scheduled_start)
+      if (now < startTime) {
+        return {
+          available: false,
+          reason: 'Exam not yet started',
+          deadline: startTime
+        }
+      }
+    }
+    
+    // Check if after deadline
+    if (exam.scheduled_end) {
+      const endTime = new Date(exam.scheduled_end)
+      if (now > endTime) {
+        return {
+          available: false,
+          reason: 'Exam deadline has passed',
+          deadline: endTime
+        }
+      }
+    }
+    
+    return { available: true }
+  }
+
   const selectedSub = subscriptions.find(s => s.id === selectedSubscription)
+
+  // Filter and sort exams
+  const getFilteredAndSortedExams = () => {
+    let filtered = [...exams]
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(exam =>
+        exam.title.toLowerCase().includes(query) ||
+        exam.topic?.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(exam => {
+        const availability = getExamAvailability(exam)
+        const now = new Date()
+
+        switch (statusFilter) {
+          case 'available':
+            return availability.available
+          case 'upcoming':
+            return exam.scheduled_start && new Date(exam.scheduled_start) > now
+          case 'past':
+            return exam.scheduled_end && new Date(exam.scheduled_end) < now
+          default:
+            return true
+        }
+      })
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'title':
+          return a.title.localeCompare(b.title)
+        case 'deadline':
+          // Sort by scheduled_end, nulls last
+          if (!a.scheduled_end && !b.scheduled_end) return 0
+          if (!a.scheduled_end) return 1
+          if (!b.scheduled_end) return -1
+          return new Date(a.scheduled_end).getTime() - new Date(b.scheduled_end).getTime()
+        case 'time':
+          return a.time_limit - b.time_limit
+        case 'recent':
+        default:
+          // Already sorted by created_at DESC from database
+          return 0
+      }
+    })
+
+    return filtered
+  }
+
+  const filteredExams = getFilteredAndSortedExams()
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
@@ -250,6 +329,72 @@ export default function ExamsPage() {
         {selectedSubscription && selectedSub && (
           <div className="mt-8">
             <h2 className="text-2xl font-bold mb-4">{selectedSub.name} - Available Exams</h2>
+            
+            {/* Search and Filter Section */}
+            {selectedSub.status === 'approved' && exams.length > 0 && (
+              <div className="mb-6 space-y-4">
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search exams by title or topic..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-10"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setSearchQuery('')}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Filter and Sort */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-full">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="all">All Exams</SelectItem>
+                        <SelectItem value="available">Available Now</SelectItem>
+                        <SelectItem value="upcoming">Upcoming</SelectItem>
+                        <SelectItem value="past">Past Deadline</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-full">
+                        <SortAsc className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="recent">Most Recent</SelectItem>
+                        <SelectItem value="deadline">By Deadline</SelectItem>
+                        <SelectItem value="title">By Title (A-Z)</SelectItem>
+                        <SelectItem value="time">By Duration</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Results Count */}
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {filteredExams.length} of {exams.length} exam{exams.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            )}
+
             {selectedSub.status !== 'approved' ? (
               <Card>
                 <CardContent className="p-6 text-center">
@@ -272,37 +417,76 @@ export default function ExamsPage() {
                   <p>No exams available in this subscription yet.</p>
                 </CardContent>
               </Card>
+            ) : filteredExams.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="mb-2 font-semibold">No exams found</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Try adjusting your search or filters
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setStatusFilter('all')
+                      setSortBy('recent')
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </CardContent>
+              </Card>
             ) : (
               <div className="grid gap-4">
-                {exams.map((exam) => (
-                  <Card key={exam.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>{exam.title}</CardTitle>
-                          {exam.topic && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Topic: {exam.topic}</p>
-                          )}
+                {filteredExams.map((exam) => {
+                  const availability = getExamAvailability(exam)
+                  return (
+                    <Card key={exam.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle>{exam.title}</CardTitle>
+                            {exam.topic && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Topic: {exam.topic}</p>
+                            )}
+                          </div>
+                          <Button 
+                            onClick={() => router.push(`/exams/${exam.id}/details`)}
+                          >
+                            View Details
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button onClick={() => router.push(`/exams/${exam.id}/details`)}>
-                          View Details
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center space-x-2">
-                          <Clock className="h-4 w-4" />
-                          <span>{exam.time_limit} minutes</span>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-4 w-4" />
+                            <span>{exam.time_limit} minutes</span>
+                          </div>
+                          <div>
+                            <span>{exam.attempt_limit} attempt{exam.attempt_limit !== 1 ? 's' : ''}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span>{exam.attempt_limit} attempt{exam.attempt_limit !== 1 ? 's' : ''}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        {!availability.available && (
+                          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-3">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                              {availability.reason}
+                            </p>
+                            {availability.deadline && (
+                              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                                {exam.scheduled_start && availability.reason.includes('not yet') 
+                                  ? `Starts: ${format(availability.deadline, 'PPpp')}`
+                                  : `Deadline: ${format(availability.deadline, 'PPpp')}`}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             )}
           </div>

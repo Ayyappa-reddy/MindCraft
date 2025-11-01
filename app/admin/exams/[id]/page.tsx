@@ -68,6 +68,26 @@ export default function ExamsListPage() {
     scheduled_end: '',
   })
 
+  // Helper function to convert UTC ISO string to local datetime-local format
+  const utcToLocal = (utcString: string | null): string => {
+    if (!utcString) return ''
+    const date = new Date(utcString)
+    // Get local date components
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+
+  // Helper function to convert local datetime-local format to UTC ISO string
+  const localToUtc = (localString: string): string | null => {
+    if (!localString) return null
+    const date = new Date(localString)
+    return date.toISOString()
+  }
+
   useEffect(() => {
     loadSubscription()
     loadExams()
@@ -207,8 +227,8 @@ export default function ExamsListPage() {
         time_limit: formData.time_limit,
         attempt_limit: formData.attempt_limit,
         release_mode: formData.release_mode,
-        scheduled_start: formData.scheduled_start || null,
-        scheduled_end: formData.scheduled_end || null,
+        scheduled_start: localToUtc(formData.scheduled_start),
+        scheduled_end: localToUtc(formData.scheduled_end),
       })
 
     if (error) {
@@ -233,8 +253,8 @@ export default function ExamsListPage() {
         time_limit: formData.time_limit,
         attempt_limit: formData.attempt_limit,
         release_mode: formData.release_mode,
-        scheduled_start: formData.scheduled_start || null,
-        scheduled_end: formData.scheduled_end || null,
+        scheduled_start: localToUtc(formData.scheduled_start),
+        scheduled_end: localToUtc(formData.scheduled_end),
       })
       .eq('id', selectedExam.id)
 
@@ -349,8 +369,8 @@ export default function ExamsListPage() {
                           time_limit: exam.time_limit,
                           attempt_limit: exam.attempt_limit,
                           release_mode: exam.release_mode,
-                          scheduled_start: exam.scheduled_start || '',
-                          scheduled_end: exam.scheduled_end || '',
+                          scheduled_start: utcToLocal(exam.scheduled_start),
+                          scheduled_end: utcToLocal(exam.scheduled_end),
                         })
                       }}
                       className="hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
@@ -463,7 +483,20 @@ export default function ExamsListPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduled_start">Scheduled Start (Optional)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="scheduled_start">Scheduled Start (Optional)</Label>
+                  {formData.scheduled_start && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, scheduled_start: '' })}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="scheduled_start"
                   type="datetime-local"
@@ -473,14 +506,27 @@ export default function ExamsListPage() {
                 <p className="text-xs text-gray-500">Exam will be available from this time</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="scheduled_end">Scheduled End (Optional)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="scheduled_end">Scheduled End (Optional)</Label>
+                  {formData.scheduled_end && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, scheduled_end: '' })}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="scheduled_end"
                   type="datetime-local"
                   value={formData.scheduled_end}
                   onChange={(e) => setFormData({ ...formData, scheduled_end: e.target.value })}
                 />
-                <p className="text-xs text-gray-500">Exam will be unavailable after this time</p>
+                <p className="text-xs text-gray-500">Exam unavailable after this time (deadline)</p>
               </div>
             </div>
           </div>

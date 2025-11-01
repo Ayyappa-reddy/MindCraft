@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock, FileText, TrendingUp, Trophy, AlertCircle, CheckCircle, RefreshCw, BarChart3, Eye, ArrowRight } from 'lucide-react'
+import { Clock, FileText, TrendingUp, Trophy, AlertCircle, CheckCircle, RefreshCw, BarChart3, Eye, ArrowRight, Calendar } from 'lucide-react'
+import { format } from 'date-fns'
 
 interface Exam {
   id: string
@@ -146,6 +147,39 @@ export default function ExamDetailsPage() {
   const totalAttemptLimit = exam ? exam.attempt_limit + extraAttempts : 0
   const canTakeExam = attemptCount < totalAttemptLimit
 
+  // Check if exam is within scheduled time
+  const getExamAvailability = () => {
+    if (!exam) return { available: true, reason: '' }
+    const now = new Date()
+    
+    if (exam.scheduled_start) {
+      const startTime = new Date(exam.scheduled_start)
+      if (now < startTime) {
+        return {
+          available: false,
+          reason: 'Exam not yet started',
+          deadline: startTime
+        }
+      }
+    }
+    
+    if (exam.scheduled_end) {
+      const endTime = new Date(exam.scheduled_end)
+      if (now > endTime) {
+        return {
+          available: false,
+          reason: 'Exam deadline has passed',
+          deadline: endTime
+        }
+      }
+    }
+    
+    return { available: true, reason: '' }
+  }
+
+  const availability = getExamAvailability()
+  const canAttemptNow = canTakeExam && availability.available
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
       <div>Loading...</div>
@@ -243,6 +277,18 @@ export default function ExamDetailsPage() {
                     <FileText className="h-4 w-4" />
                     <span>{attemptCount}/{totalAttemptLimit} attempts used</span>
                   </div>
+                  {exam.scheduled_start && (
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Starts: {format(new Date(exam.scheduled_start), 'PPpp')}</span>
+                    </div>
+                  )}
+                  {exam.scheduled_end && (
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Deadline: {format(new Date(exam.scheduled_end), 'PPpp')}</span>
+                    </div>
+                  )}
                   {exam.release_mode === 'auto' && (
                     <div className="flex items-center space-x-2">
                       <CheckCircle className="h-4 w-4 text-green-600" />
@@ -258,11 +304,20 @@ export default function ExamDetailsPage() {
                 </div>
               </div>
               <div className="flex space-x-4">
-                {canTakeExam ? (
+                {canAttemptNow ? (
                   <Button size="lg" onClick={handleStartExam}>
                     {attemptCount === 0 ? 'Take Exam' : 'Retake Exam'}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
+                ) : !availability.available ? (
+                  <div className="flex flex-col items-end space-y-2">
+                    <Button size="lg" variant="outline" disabled>
+                      {attemptCount === 0 ? 'Take Exam' : 'Retake Exam'}
+                    </Button>
+                    <span className="text-xs text-red-600 dark:text-red-400">
+                      {availability.reason}
+                    </span>
+                  </div>
                 ) : (
                   <Button size="lg" variant="outline" onClick={handleRequestExtraAttempt}>
                     Request Extra Attempt
@@ -321,9 +376,22 @@ export default function ExamDetailsPage() {
             <CardContent className="p-6 text-center">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="mb-4">No attempts yet</p>
-              {canTakeExam && (
+              {canAttemptNow ? (
                 <Button onClick={handleStartExam}>
                   Take Exam
+                </Button>
+              ) : !availability.available ? (
+                <div>
+                  <Button disabled>
+                    Take Exam
+                  </Button>
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    {availability.reason}
+                  </p>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={handleRequestExtraAttempt}>
+                  Request Extra Attempt
                 </Button>
               )}
             </CardContent>
