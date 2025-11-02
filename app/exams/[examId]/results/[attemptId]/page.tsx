@@ -86,6 +86,28 @@ export default function ResultsPage() {
     return false
   }
 
+  const getCodingScore = (question: Question, studentAnswer: any) => {
+    if (!studentAnswer || question.type !== 'coding') return null
+    
+    const total = question.test_cases?.length || 0
+    
+    // If no test cases exist, give full marks
+    if (total === 0) {
+      return { passed: 0, total: 0, score: question.marks, isComplete: true }
+    }
+    
+    const testResults = studentAnswer.testResults
+    if (!testResults || !Array.isArray(testResults)) {
+      return { passed: 0, total, score: 0, isComplete: false }
+    }
+    
+    const passed = testResults.filter((r: any) => r.passed).length
+    const score = (passed / total) * question.marks
+    const isComplete = passed === total
+    
+    return { passed, total, score: Math.round(score * 100) / 100, isComplete }
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
       <div>Loading results...</div>
@@ -188,6 +210,7 @@ export default function ResultsPage() {
           {questions.map((question, idx) => {
             const studentAnswer = attempt.answers[question.id]
             const isCorrect = getAnswerStatus(question, studentAnswer)
+            const codingScore = getCodingScore(question, studentAnswer)
 
             return (
               <Card key={question.id} className={isCorrect === true ? 'border-green-500' : isCorrect === false ? 'border-red-500' : 'border-gray-400'}>
@@ -220,9 +243,16 @@ export default function ResultsPage() {
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {question.marks} mark{question.marks !== 1 ? 's' : ''}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {question.marks} mark{question.marks !== 1 ? 's' : ''}
+                    </p>
+                    {codingScore && (
+                      <p className={`text-sm font-semibold ${codingScore.isComplete ? 'text-green-600' : codingScore.score > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        Score: {codingScore.score}/{question.marks} {codingScore.total > 0 ? `(${codingScore.passed}/${codingScore.total} test cases passed)` : '(no test cases - auto-awarded full marks)'}
+                      </p>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {question.type === 'mcq' && (

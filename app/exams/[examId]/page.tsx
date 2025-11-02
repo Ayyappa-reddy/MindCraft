@@ -125,9 +125,13 @@ export default function ExamAttemptPage() {
         }
       } else if (question.type === 'coding') {
         // For coding questions, calculate score based on test case results
-        if (studentAnswer.testResults && Array.isArray(studentAnswer.testResults)) {
+        const totalTestCases = question.test_cases?.length || 0
+        
+        if (totalTestCases === 0) {
+          // If no test cases exist, give full marks
+          totalScore += question.marks
+        } else if (studentAnswer.testResults && Array.isArray(studentAnswer.testResults)) {
           const passedCount = studentAnswer.testResults.filter((r: any) => r.passed).length
-          const totalTestCases = question.test_cases?.length || 1
           const partialScore = (passedCount / totalTestCases) * question.marks
           totalScore += partialScore
         }
