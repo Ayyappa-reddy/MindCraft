@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, XCircle, ArrowLeft, AlertTriangle, HelpCircle, CheckCircle2 } from 'lucide-react'
 import Editor from '@monaco-editor/react'
+import MarkdownText from '@/components/MarkdownText'
 
 interface Question {
   id: string
@@ -196,7 +197,9 @@ export default function ResultsPage() {
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold">
                         {idx + 1}
                       </span>
-                      <span>{question.question_text}</span>
+                      <span>
+                        <MarkdownText>{question.question_text}</MarkdownText>
+                      </span>
                     </CardTitle>
                     <div className="flex items-center space-x-2">
                       {isCorrect === true ? (
@@ -329,7 +332,9 @@ export default function ResultsPage() {
                   {question.explanation && (
                     <div className="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                       <p className="font-semibold mb-2">Explanation:</p>
-                      <p className="text-sm">{question.explanation}</p>
+                      <div className="text-sm">
+                        <MarkdownText>{question.explanation}</MarkdownText>
+                      </div>
                     </div>
                   )}
                 </CardContent>

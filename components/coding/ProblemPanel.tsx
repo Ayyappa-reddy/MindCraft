@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import MarkdownText from '@/components/MarkdownText'
 
 interface Example {
   input: string
@@ -64,9 +65,9 @@ export default function ProblemPanel({
 
           {/* Description */}
           <Card className="p-4 bg-white border-gray-200">
-            <p className="text-[#1f2937] whitespace-pre-wrap leading-relaxed">
-              {description}
-            </p>
+            <div className="text-[#1f2937] leading-relaxed">
+              <MarkdownText>{description}</MarkdownText>
+            </div>
           </Card>
 
           {/* Input Format */}
@@ -203,7 +204,9 @@ export default function ProblemPanel({
                         {example.explanation && (
                           <div>
                             <span className="text-sm font-medium text-gray-600">Explanation:</span>
-                            <p className="mt-1 text-gray-700 text-sm">{example.explanation}</p>
+                            <div className="mt-1 text-gray-700 text-sm">
+                              <MarkdownText>{example.explanation}</MarkdownText>
+                            </div>
                           </div>
                         )}
                       </Card>

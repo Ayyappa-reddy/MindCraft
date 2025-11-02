@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Edit, Trash2, ArrowLeft, FileText, Code, HelpCircle, Upload, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import MarkdownText from '@/components/MarkdownText'
 
 interface Question {
   id: string
@@ -830,7 +831,9 @@ export default function QuestionsPage() {
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
-                        <CardTitle>{q.question_text}</CardTitle>
+                        <CardTitle>
+                          <MarkdownText>{q.question_text}</MarkdownText>
+                        </CardTitle>
                         {q.type === 'mcq' ? (
                           <HelpCircle className="h-5 w-5 text-blue-600" />
                         ) : (
@@ -952,7 +955,9 @@ export default function QuestionsPage() {
                               {ex.explanation && (
                                 <div>
                                   <span className="text-sm font-medium">Explanation:</span>
-                                  <p className="text-sm mt-1">{ex.explanation}</p>
+                                  <div className="text-sm mt-1">
+                                    <MarkdownText>{ex.explanation}</MarkdownText>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -994,7 +999,9 @@ export default function QuestionsPage() {
                 {q.explanation && (
                   <div className="mt-4">
                     <p className="font-semibold mb-2">Explanation:</p>
-                    <p className="text-sm">{q.explanation}</p>
+                    <div className="text-sm">
+                      <MarkdownText>{q.explanation}</MarkdownText>
+                    </div>
                   </div>
                 )}
               </CardContent>
