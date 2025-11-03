@@ -216,10 +216,22 @@ export default function ExamAttemptPage() {
         const elem = document.documentElement
         if (!document.fullscreenElement) {
           try {
-            await elem.requestFullscreen()
+            if (elem.requestFullscreen) {
+              await elem.requestFullscreen()
+            } else if ((elem as any).webkitRequestFullscreen) {
+              await (elem as any).webkitRequestFullscreen()
+            } else if ((elem as any).mozRequestFullScreen) {
+              await (elem as any).mozRequestFullScreen()
+            } else if ((elem as any).msRequestFullscreen) {
+              await (elem as any).msRequestFullscreen()
+            } else {
+              alert('Fullscreen is not supported in this browser. Please use F11 or your browser\'s fullscreen option.')
+            }
           } catch (err: any) {
             console.error('Fullscreen request failed:', err)
-            // Don't block exam if fullscreen fails (e.g., user denies permission)
+            const errorMsg = err?.message || 'Unknown error'
+            // Show alert to inform students to use F11 or Fn+F11
+            alert('Fullscreen button not working. Please press F11 (or Fn+F11 on some laptops) to enter fullscreen mode.')
           }
         }
       }

@@ -250,9 +250,9 @@ export default function CodingExamLayout({
   }))
 
   return (
-    <div className="h-[calc(100vh-100px)] flex">
+    <div className="h-[calc(100vh-200px)] flex">
       {/* Left: Problem Panel */}
-      <div className="w-[30%]">
+      <div className="w-[30%] h-full">
         <ProblemPanel
           title={currentQuestion.title}
           description={currentQuestion.question_text}
@@ -313,7 +313,7 @@ export default function CodingExamLayout({
       )}
 
       {/* Right: Question Navigator */}
-      <div className="w-[18%]">
+      <div className="w-[18%] h-full">
         <QuestionNavigator
           questions={navigatorQuestions}
           onNavigate={handleQuestionNavigate}
