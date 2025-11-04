@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,6 +24,7 @@ interface Student {
 }
 
 export default function StudentsPage() {
+  const router = useRouter()
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -268,7 +270,10 @@ export default function StudentsPage() {
             <Card key={student.id}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                  <div 
+                    className="flex items-center space-x-4 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => router.push(`/admin/students/${student.id}`)}
+                  >
                     <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold">
                       {student.name[0].toUpperCase()}
                     </div>

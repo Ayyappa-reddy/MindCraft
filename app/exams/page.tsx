@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { FileText, Clock, CheckCircle, XCircle, ArrowRight, Calendar, Search, X, Filter, SortAsc } from 'lucide-react'
+import { FileText, Clock, CheckCircle, XCircle, ArrowRight, Search, X, Filter, SortAsc } from 'lucide-react'
 import { format } from 'date-fns'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -26,6 +26,7 @@ interface Exam {
   attempt_limit: number
   scheduled_start?: string | null
   scheduled_end?: string | null
+  attemptCount?: number
 }
 
 export default function ExamsPage() {
@@ -104,6 +105,10 @@ export default function ExamsPage() {
 
   async function loadExams() {
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return
+
     const { data } = await supabase
       .from('exams')
       .select('*')
@@ -115,9 +120,25 @@ export default function ExamsPage() {
       return
     }
 
+    // Load attempt counts for each exam
+    const examsWithAttempts = await Promise.all(
+      data.map(async (exam) => {
+        const { count } = await supabase
+          .from('attempts')
+          .select('id', { count: 'exact', head: true })
+          .eq('exam_id', exam.id)
+          .eq('student_id', user.id)
+
+        return {
+          ...exam,
+          attemptCount: count || 0,
+        }
+      })
+    )
+
     // Show all exams - visibility is not restricted by schedule
     // Schedule only controls when students can attempt exams
-    setExams(data)
+    setExams(examsWithAttempts)
   }
 
   async function handleSubscribe(subscriptionId: string) {
@@ -224,6 +245,10 @@ export default function ExamsPage() {
             return exam.scheduled_start && new Date(exam.scheduled_start) > now
           case 'past':
             return exam.scheduled_end && new Date(exam.scheduled_end) < now
+          case 'attempted':
+            return (exam.attemptCount || 0) > 0
+          case 'not_attempted':
+            return (exam.attemptCount || 0) === 0
           default:
             return true
         }
@@ -365,6 +390,8 @@ export default function ExamsPage() {
                       </SelectTrigger>
                       <SelectContent className="bg-white">
                         <SelectItem value="all">All Exams</SelectItem>
+                        <SelectItem value="attempted">Attempted</SelectItem>
+                        <SelectItem value="not_attempted">Not Attempted</SelectItem>
                         <SelectItem value="available">Available Now</SelectItem>
                         <SelectItem value="upcoming">Upcoming</SelectItem>
                         <SelectItem value="past">Past Deadline</SelectItem>
@@ -445,8 +472,16 @@ export default function ExamsPage() {
                     <Card key={exam.id} className="hover:shadow-md transition-shadow">
                       <CardHeader>
                         <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle>{exam.title}</CardTitle>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <CardTitle>{exam.title}</CardTitle>
+                              {(exam.attemptCount || 0) > 0 && (
+                                <span className="inline-flex items-center space-x-1 px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200 text-xs font-medium">
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span>Attempted</span>
+                                </span>
+                              )}
+                            </div>
                             {exam.topic && (
                               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Topic: {exam.topic}</p>
                             )}
@@ -468,6 +503,12 @@ export default function ExamsPage() {
                           <div>
                             <span>{exam.attempt_limit} attempt{exam.attempt_limit !== 1 ? 's' : ''}</span>
                           </div>
+                          {(exam.attemptCount || 0) > 0 && (
+                            <div className="flex items-center space-x-2 text-green-600 dark:text-green-400 font-medium">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>{exam.attemptCount} attempt{(exam.attemptCount || 0) !== 1 ? 's' : ''} completed</span>
+                            </div>
+                          )}
                         </div>
                         {!availability.available && (
                           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-3">
